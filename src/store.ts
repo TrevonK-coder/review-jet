@@ -14,6 +14,7 @@ export type Customer = {
 export type AppState = {
     isAuthenticated: boolean;
     businessName: string;
+    subscriptionTier: 'standard' | 'pro';
     placeId: string;
     twilioConfig: {
         accountSid: string;
@@ -31,6 +32,7 @@ export type AppState = {
     login: () => void;
     logout: () => void;
     setBusinessName: (name: string) => void;
+    setSubscriptionTier: (tier: 'standard' | 'pro') => void;
     setPlaceId: (id: string) => void;
     setTwilioConfig: (config: AppState['twilioConfig']) => void;
     setOfferTemplate: (template: string) => void;
@@ -75,6 +77,7 @@ const restaurantDemo = {
 export const useStore = create<AppState>((set) => ({
     isAuthenticated: false,
     businessName: '',
+    subscriptionTier: 'standard',
     placeId: '',
     twilioConfig: {
         accountSid: '',
@@ -92,6 +95,7 @@ export const useStore = create<AppState>((set) => ({
     login: () => set({ isAuthenticated: true }),
     logout: () => set({ isAuthenticated: false }),
     setBusinessName: (name) => set({ businessName: name }),
+    setSubscriptionTier: (tier) => set({ subscriptionTier: tier }),
     setPlaceId: (id) => set({ placeId: id }),
     setTwilioConfig: (config) => set({ twilioConfig: config }),
     setOfferTemplate: (template) => set({ offerTemplate: template }),

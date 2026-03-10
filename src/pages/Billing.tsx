@@ -1,6 +1,16 @@
 import { Check, Zap, Store } from 'lucide-react';
+import { useStore } from '../store';
+import { toast } from 'sonner';
 
 const Billing = () => {
+    const subscriptionTier = useStore(state => state.subscriptionTier);
+    const setSubscriptionTier = useStore(state => state.setSubscriptionTier);
+
+    const handlePlanChange = (tier: 'standard' | 'pro') => {
+        setSubscriptionTier(tier);
+        toast.success(`Successfully ${tier === 'pro' ? 'upgraded to Pro' : 'downgraded to Standard'} plan!`);
+    };
+
     return (
         <div className="space-y-6 max-w-6xl mx-auto pb-12">
             <div className="text-center py-10">
@@ -36,8 +46,15 @@ const Billing = () => {
                             ))}
                         </ul>
 
-                        <button className="w-full py-3.5 rounded-xl text-indigo-600 bg-indigo-50 font-bold hover:bg-indigo-100 transition-colors">
-                            Current Plan
+                        <button
+                            onClick={() => handlePlanChange('standard')}
+                            disabled={subscriptionTier === 'standard'}
+                            className={`w-full py-3.5 rounded-xl font-bold transition-colors ${subscriptionTier === 'standard'
+                                    ? 'text-indigo-600 bg-indigo-50 cursor-not-allowed'
+                                    : 'text-white bg-slate-900 hover:bg-slate-800'
+                                }`}
+                        >
+                            {subscriptionTier === 'standard' ? 'Current Plan' : 'Downgrade to Standard'}
                         </button>
                     </div>
                 </div>
@@ -68,7 +85,7 @@ const Billing = () => {
                                 <Check size={18} className="text-indigo-400 mr-3 shrink-0" />
                                 <span className="text-slate-300 font-medium">Everything in Standard, plus:</span>
                             </li>
-                            {['Returning Client Identification', 'Custom Offer SMS Triggers (e.g. "Free local delivery")', 'Multi-location Dashboard (Up to 5)', 'Priority Support'].map((feature, i) => (
+                            {['Returning Client Identification', 'Custom Offer SMS Triggers', 'AI Personal Assistant (ReviewJet Sparkle)', 'Priority Support'].map((feature, i) => (
                                 <li key={i} className="flex items-center">
                                     <Check size={18} className="text-emerald-400 mr-3 shrink-0" />
                                     <span className="text-white font-medium">{feature}</span>
@@ -76,8 +93,15 @@ const Billing = () => {
                             ))}
                         </ul>
 
-                        <button className="w-full py-3.5 rounded-xl text-white bg-indigo-500 font-bold hover:bg-indigo-400 transition-colors shadow-lg shadow-indigo-500/30">
-                            Upgrade to Pro
+                        <button
+                            onClick={() => handlePlanChange('pro')}
+                            disabled={subscriptionTier === 'pro'}
+                            className={`w-full py-3.5 rounded-xl font-bold transition-colors shadow-lg ${subscriptionTier === 'pro'
+                                    ? 'text-indigo-200 bg-indigo-900/50 cursor-not-allowed shadow-none'
+                                    : 'text-white bg-indigo-500 hover:bg-indigo-400 shadow-indigo-500/30'
+                                }`}
+                        >
+                            {subscriptionTier === 'pro' ? 'Current Plan' : 'Upgrade to Pro'}
                         </button>
                     </div>
                 </div>
