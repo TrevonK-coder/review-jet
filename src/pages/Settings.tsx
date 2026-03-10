@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useStore } from '../store';
-import { Save, Link as LinkIcon, Smartphone, Building } from 'lucide-react';
+import { Save, Link as LinkIcon, Smartphone, Building, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Settings = () => {
@@ -12,13 +12,16 @@ const Settings = () => {
         setBusinessName,
         setPlaceId,
         setTwilioConfig,
-        setOfferTemplate
+        setOfferTemplate,
+        aiApiKey,
+        setAiApiKey
     } = useStore();
 
     const [formBusiness, setFormBusiness] = useState(businessName);
     const [formPlaceId, setFormPlaceId] = useState(placeId);
     const [formTwilio, setFormTwilio] = useState(twilioConfig);
     const [formOffer, setFormOffer] = useState(offerTemplate);
+    const [formApiKey, setFormApiKey] = useState(aiApiKey);
 
     const handleSave = (e: React.FormEvent) => {
         e.preventDefault();
@@ -26,6 +29,7 @@ const Settings = () => {
         setPlaceId(formPlaceId);
         setTwilioConfig(formTwilio);
         setOfferTemplate(formOffer);
+        setAiApiKey(formApiKey);
         toast.success('Settings saved successfully!');
     };
 
@@ -170,6 +174,29 @@ const Settings = () => {
                                     placeholder="MGxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
                                 />
                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* AI Integration */}
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div className="px-6 py-5 border-b border-slate-100 flex items-center bg-slate-50">
+                        <Sparkles size={20} className="text-purple-600 mr-3" />
+                        <h2 className="text-lg font-medium text-slate-900">AI Personal Assistant</h2>
+                    </div>
+                    <div className="p-6 space-y-6">
+                        <p className="text-sm text-slate-600">
+                            Provide your Google Gemini API Key to power the ReviewJet Sparkle Assistant with real natural language generation, allowing it to dynamically fetch and interpret your data.
+                        </p>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-700 mb-1">Gemini API Key</label>
+                            <input
+                                type="password"
+                                value={formApiKey}
+                                onChange={(e) => setFormApiKey(e.target.value)}
+                                className="w-full border-slate-300 rounded-xl py-2.5 px-3 border outline-none focus:ring-2 focus:ring-purple-500 font-mono text-sm"
+                                placeholder="AIzaSy............................."
+                            />
                         </div>
                     </div>
                 </div>

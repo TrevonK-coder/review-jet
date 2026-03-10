@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store';
 import { X, Send, Sparkles, Bot, Lock } from 'lucide-react';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 type Message = {
     id: string;
@@ -12,6 +13,7 @@ type Message = {
 const Assistant = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [input, setInput] = useState('');
+    const [isTyping, setIsTyping] = useState(false);
     const [messages, setMessages] = useState<Message[]>([
         {
             id: '1',
@@ -25,6 +27,7 @@ const Assistant = () => {
     const metrics = useStore(state => state.metrics);
     const customers = useStore(state => state.customers);
     const subscriptionTier = useStore(state => state.subscriptionTier);
+    const aiApiKey = useStore(state => state.aiApiKey);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -34,7 +37,7 @@ const Assistant = () => {
         scrollToBottom();
     }, [messages]);
 
-    const handleSend = (e: React.FormEvent) => {
+    const handleSend = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!input.trim()) return;
 
@@ -42,36 +45,74 @@ const Assistant = () => {
         const newMessages = [...messages, { id: Date.now().toString(), text: userMsg, isBot: false }];
         setMessages(newMessages);
         setInput('');
+        setIsTyping(true);
 
-        // Basic NLP / Intent Parsing
         const lowerInput = userMsg.toLowerCase();
-        let botResponse = "I'm not sure how to help with that yet. Try asking about your stats, or ask me to navigate somewhere!";
 
-        // Navigation Intents
+        // 1. Hardcoded Navigation Catch (for speed and exactness)
         if (lowerInput.includes('billing') || lowerInput.includes('upgrade') || lowerInput.includes('plan')) {
-            botResponse = "Taking you to the Billing page now!";
+            setIsTyping(false);
+            setMessages(prev => [...prev, { id: Date.now().toString(), text: "Taking you to the Billing page now!", isBot: true }]);
             setTimeout(() => navigate('/billing'), 800);
+            return;
         } else if (lowerInput.includes('setting') || lowerInput.includes('setup') || lowerInput.includes('twilio')) {
-            botResponse = "Taking you to Settings!";
+            setIsTyping(false);
+            setMessages(prev => [...prev, { id: Date.now().toString(), text: "Taking you to Settings!", isBot: true }]);
             setTimeout(() => navigate('/settings'), 800);
+            return;
         } else if (lowerInput.includes('dashboard') || lowerInput.includes('home')) {
-            botResponse = "Taking you to the Dashboard!";
+            setIsTyping(false);
+            setMessages(prev => [...prev, { id: Date.now().toString(), text: "Taking you to the Dashboard!", isBot: true }]);
             setTimeout(() => navigate('/'), 800);
+            return;
         } else if (lowerInput.includes('customer') || lowerInput.includes('directory') || lowerInput.includes('client')) {
-            botResponse = "Taking you to your Customers Directory!";
+            setIsTyping(false);
+            setMessages(prev => [...prev, { id: Date.now().toString(), text: "Taking you to your Customers Directory!", isBot: true }]);
             setTimeout(() => navigate('/customers'), 800);
+            return;
         }
 
-        // Data Fetching Intents
-        else if (lowerInput.includes('how many review') || lowerInput.includes('total review') || (lowerInput.includes('sms') && lowerInput.includes('review'))) {
+        // 2. Dynamic Data Fetching via Gemini (if configured)
+        if (aiApiKey) {
+            try {
+                const genAI = new GoogleGenerativeAI(aiApiKey);
+                const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+                const contextPrompt = `
+You are 'ReviewJet Sparkle', a helpful AI assistant built into a SaaS app for small businesses. 
+Your tone is friendly and concise. Do NOT use markdown in your response.
+You have access to the user's live business data. Answer their question strictly based on this data:
+- Metrics: ${JSON.stringify(metrics, null, 2)}
+- Customer Database: ${JSON.stringify(customers, null, 2)}
+- Revenue Calculation: A review click is roughly worth $15. An offer click is roughly worth $45. Total revenue is (reviewClicks * 15) + (offerClicks * 45).
+
+User's Question: "${userMsg}"
+`;
+                const result = await model.generateContent(contextPrompt);
+                const response = result.response.text();
+                setIsTyping(false);
+                setMessages(prev => [...prev, { id: Date.now().toString(), text: response, isBot: true }]);
+                return;
+            } catch (error) {
+                console.error("Gemini API Error:", error);
+                setIsTyping(false);
+                setMessages(prev => [...prev, { id: Date.now().toString(), text: "I'm having trouble connecting to my AI brain right now. Please check your API key in settings!", isBot: true }]);
+                return;
+            }
+        }
+
+        // 3. Fallback to basic keyword matching if no API Key
+        let botResponse = "I haven't been connected to Gemini yet. Please add your API key in Settings for dynamic answers! For now, try asking me about 'stats'.";
+
+        if (lowerInput.includes('how many review') || lowerInput.includes('total review') || (lowerInput.includes('sms') && lowerInput.includes('review'))) {
             botResponse = `You have sent ${metrics.reviewsSent} review requests so far!`;
         } else if (lowerInput.includes('how many offer') || lowerInput.includes('total offer') || (lowerInput.includes('sms') && lowerInput.includes('offer'))) {
             botResponse = `You have sent ${metrics.offersSent} special offers to returning clients!`;
         } else if (lowerInput.includes('sms was sent') || lowerInput.includes('sms sent') || lowerInput.includes('total sms')) {
             botResponse = `You've sent ${metrics.reviewsSent + metrics.offersSent} total SMS messages today (${metrics.reviewsSent} reviews, ${metrics.offersSent} offers).`;
         } else if (lowerInput.includes('how much have i made') || lowerInput.includes('revenue') || lowerInput.includes('earnings')) {
-            const revEarnings = metrics.reviewClicks * 15; // Assume returning for review brings $15
-            const offerEarnings = metrics.offerClicks * 45; // Assume returning for offer brings $45
+            const revEarnings = metrics.reviewClicks * 15;
+            const offerEarnings = metrics.offerClicks * 45;
             botResponse = `Based on your SMS click-through conversions, you've generated an estimated $${revEarnings + offerEarnings} in revenue today!`;
         } else if (lowerInput.includes('ctr') || lowerInput.includes('click through rate') || lowerInput.includes('clicks') || lowerInput.includes('stats')) {
             const reviewCtr = metrics.reviewsSent > 0 ? Math.round((metrics.reviewClicks / metrics.reviewsSent) * 100) : 0;
@@ -85,6 +126,7 @@ const Assistant = () => {
         }
 
         setTimeout(() => {
+            setIsTyping(false);
             setMessages(prev => [...prev, { id: Date.now().toString(), text: botResponse, isBot: true }]);
         }, 500);
     };
@@ -152,6 +194,15 @@ const Assistant = () => {
                                     </div>
                                 </div>
                             ))}
+                            {isTyping && (
+                                <div className="flex justify-start">
+                                    <div className="max-w-[85%] p-3 rounded-2xl text-sm bg-white text-slate-700 border border-slate-100 rounded-tl-none shadow-sm flex items-center space-x-1">
+                                        <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
+                                        <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                                        <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                                    </div>
+                                </div>
+                            )}
                             <div ref={messagesEndRef} />
                         </div>
 
@@ -167,7 +218,7 @@ const Assistant = () => {
                                 />
                                 <button
                                     type="submit"
-                                    disabled={!input.trim()}
+                                    disabled={!input.trim() || isTyping}
                                     className="absolute right-2 top-2 p-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
                                 >
                                     <Send size={16} />

@@ -21,6 +21,7 @@ export type AppState = {
         authToken: string;
         messagingServiceSid: string;
     };
+    aiApiKey: string;
     customers: Customer[];
     metrics: {
         reviewsSent: number;
@@ -35,6 +36,7 @@ export type AppState = {
     setSubscriptionTier: (tier: 'standard' | 'pro') => void;
     setPlaceId: (id: string) => void;
     setTwilioConfig: (config: AppState['twilioConfig']) => void;
+    setAiApiKey: (key: string) => void;
     setOfferTemplate: (template: string) => void;
     addCustomer: (customer: Omit<Customer, 'id' | 'createdAt' | 'status' | 'visitCount'>) => void;
     sendReviewRequest: (customerId: string) => void;
@@ -84,6 +86,7 @@ export const useStore = create<AppState>((set) => ({
         authToken: '',
         messagingServiceSid: '',
     },
+    aiApiKey: '',
     customers: [],
     metrics: {
         reviewsSent: 0,
@@ -98,6 +101,7 @@ export const useStore = create<AppState>((set) => ({
     setSubscriptionTier: (tier) => set({ subscriptionTier: tier }),
     setPlaceId: (id) => set({ placeId: id }),
     setTwilioConfig: (config) => set({ twilioConfig: config }),
+    setAiApiKey: (key) => set({ aiApiKey: key }),
     setOfferTemplate: (template) => set({ offerTemplate: template }),
     addCustomer: (customer) =>
         set((state) => {
