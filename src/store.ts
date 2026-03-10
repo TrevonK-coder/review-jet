@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 export type Customer = {
     id: string;
@@ -76,107 +77,124 @@ const restaurantDemo = {
     metrics: { reviewsSent: 280, reviewClicks: 160, offersSent: 70, offerClicks: 50 }
 };
 
-export const useStore = create<AppState>((set) => ({
-    isAuthenticated: false,
-    businessName: '',
-    subscriptionTier: 'standard',
-    placeId: '',
-    twilioConfig: {
-        accountSid: '',
-        authToken: '',
-        messagingServiceSid: '',
-    },
-    aiApiKey: '',
-    customers: [],
-    metrics: {
-        reviewsSent: 0,
-        reviewClicks: 0,
-        offersSent: 0,
-        offerClicks: 0,
-    },
-    offerTemplate: "Hi [Customer Name]! Thanks for being a loyal customer at [Business Name]. Here is a special offer: Free delivery within 10km for a whole month! Reply YES to claim.",
-    login: () => set({ isAuthenticated: true }),
-    logout: () => set({ isAuthenticated: false }),
-    setBusinessName: (name) => set({ businessName: name }),
-    setSubscriptionTier: (tier) => set({ subscriptionTier: tier }),
-    setPlaceId: (id) => set({ placeId: id }),
-    setTwilioConfig: (config) => set({ twilioConfig: config }),
-    setAiApiKey: (key) => set({ aiApiKey: key }),
-    setOfferTemplate: (template) => set({ offerTemplate: template }),
-    addCustomer: (customer) =>
-        set((state) => {
-            const existingClientIndex = state.customers.findIndex(c => c.phone === customer.phone);
+export const useStore = create<AppState>()(
+    persist(
+        (set) => ({
+            isAuthenticated: false,
+            businessName: '',
+            subscriptionTier: 'standard',
+            placeId: '',
+            twilioConfig: {
+                accountSid: '',
+                authToken: '',
+                messagingServiceSid: '',
+            },
+            aiApiKey: '',
+            customers: [],
+            metrics: {
+                reviewsSent: 0,
+                reviewClicks: 0,
+                offersSent: 0,
+                offerClicks: 0,
+            },
+            offerTemplate: "Hi [Customer Name]! Thanks for being a loyal customer at [Business Name]. Here is a special offer: Free delivery within 10km for a whole month! Reply YES to claim.",
+            login: () => set({ isAuthenticated: true }),
+            logout: () => set({ isAuthenticated: false }),
+            setBusinessName: (name) => set({ businessName: name }),
+            setSubscriptionTier: (tier) => set({ subscriptionTier: tier }),
+            setPlaceId: (id) => set({ placeId: id }),
+            setTwilioConfig: (config) => set({ twilioConfig: config }),
+            setAiApiKey: (key) => set({ aiApiKey: key }),
+            setOfferTemplate: (template) => set({ offerTemplate: template }),
+            addCustomer: (customer) =>
+                set((state) => {
+                    const existingClientIndex = state.customers.findIndex(c => c.phone === customer.phone);
 
-            if (existingClientIndex >= 0) {
-                // Update existing client
-                const updatedCustomers = [...state.customers];
-                const existing = updatedCustomers[existingClientIndex];
-                updatedCustomers[existingClientIndex] = {
-                    ...existing,
-                    name: customer.name,
-                    service: customer.service || existing.service,
-                    visitCount: existing.visitCount + 1,
-                    status: 'pending',
-                    createdAt: new Date().toISOString()
-                };
-
-                // Move them to the top of the list
-                const clientToMove = updatedCustomers.splice(existingClientIndex, 1)[0];
-                return { customers: [clientToMove, ...updatedCustomers] };
-            } else {
-                // Add new client
-                return {
-                    customers: [
-                        {
-                            ...customer,
-                            id: Math.random().toString(36).substring(7),
-                            visitCount: 1,
+                    if (existingClientIndex >= 0) {
+                        // Update existing client
+                        const updatedCustomers = [...state.customers];
+                        const existing = updatedCustomers[existingClientIndex];
+                        updatedCustomers[existingClientIndex] = {
+                            ...existing,
+                            name: customer.name,
+                            service: customer.service || existing.service,
+                            visitCount: existing.visitCount + 1,
                             status: 'pending',
-                            createdAt: new Date().toISOString(),
-                        },
-                        ...state.customers,
-                    ],
-                };
-            }
+                            createdAt: new Date().toISOString()
+                        };
+
+                        // Move them to the top of the list
+                        const clientToMove = updatedCustomers.splice(existingClientIndex, 1)[0];
+                        return { customers: [clientToMove, ...updatedCustomers] };
+                    } else {
+                        // Add new client
+                        return {
+                            customers: [
+                                {
+                                    ...customer,
+                                    id: Math.random().toString(36).substring(7),
+                                    visitCount: 1,
+                                    status: 'pending',
+                                    createdAt: new Date().toISOString(),
+                                },
+                                ...state.customers,
+                            ],
+                        };
+                    }
+                }),
+            sendReviewRequest: (customerId) =>
+                set((state) => ({
+                    customers: state.customers.map((c) =>
+                        c.id === customerId ? { ...c, status: 'sent', requestSentAt: new Date().toISOString() } : c
+                    ),
+                    metrics: {
+                        ...state.metrics,
+                        reviewsSent: state.metrics.reviewsSent + 1,
+                    },
+                })),
+            sendOfferRequest: (customerId) =>
+                set((state) => ({
+                    customers: state.customers.map((c) =>
+                        c.id === customerId ? { ...c, status: 'offer_sent', requestSentAt: new Date().toISOString() } : c
+                    ),
+                    metrics: {
+                        ...state.metrics,
+                        offersSent: state.metrics.offersSent + 1,
+                    },
+                })),
+            sendFollowUpRequest: (customerId) =>
+                set((state) => ({
+                    customers: state.customers.map((c) =>
+                        c.id === customerId ? { ...c, status: 'follow_up_sent', requestSentAt: new Date().toISOString() } : c
+                    ),
+                    metrics: {
+                        ...state.metrics,
+                        reviewsSent: state.metrics.reviewsSent + 1,
+                    },
+                })),
+            loadDemoData: (type) =>
+                set(() => {
+                    const data = type === 'barbershop' ? barbershopDemo : restaurantDemo;
+                    return {
+                        businessName: data.businessName,
+                        placeId: 'ChIJN1t_tDeuEmsRUsoyG83frY4', // Fixed demo Place ID
+                        customers: data.customers,
+                        metrics: data.metrics,
+                    };
+                })
         }),
-    sendReviewRequest: (customerId) =>
-        set((state) => ({
-            customers: state.customers.map((c) =>
-                c.id === customerId ? { ...c, status: 'sent', requestSentAt: new Date().toISOString() } : c
-            ),
-            metrics: {
-                ...state.metrics,
-                reviewsSent: state.metrics.reviewsSent + 1,
-            },
-        })),
-    sendOfferRequest: (customerId) =>
-        set((state) => ({
-            customers: state.customers.map((c) =>
-                c.id === customerId ? { ...c, status: 'offer_sent', requestSentAt: new Date().toISOString() } : c
-            ),
-            metrics: {
-                ...state.metrics,
-                offersSent: state.metrics.offersSent + 1,
-            },
-        })),
-    sendFollowUpRequest: (customerId) =>
-        set((state) => ({
-            customers: state.customers.map((c) =>
-                c.id === customerId ? { ...c, status: 'follow_up_sent', requestSentAt: new Date().toISOString() } : c
-            ),
-            metrics: {
-                ...state.metrics,
-                reviewsSent: state.metrics.reviewsSent + 1,
-            },
-        })),
-    loadDemoData: (type) =>
-        set(() => {
-            const data = type === 'barbershop' ? barbershopDemo : restaurantDemo;
-            return {
-                businessName: data.businessName,
-                placeId: 'ChIJN1t_tDeuEmsRUsoyG83frY4', // Fixed demo Place ID
-                customers: data.customers,
-                metrics: data.metrics,
-            };
-        })
-}));
+        {
+            name: 'reviewjet-storage',
+            partialize: (state) => ({
+                businessName: state.businessName,
+                placeId: state.placeId,
+                twilioConfig: state.twilioConfig,
+                aiApiKey: state.aiApiKey,
+                offerTemplate: state.offerTemplate,
+                customers: state.customers,
+                metrics: state.metrics,
+                subscriptionTier: state.subscriptionTier
+            }),
+        }
+    )
+);
