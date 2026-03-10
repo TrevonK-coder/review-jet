@@ -75,8 +75,8 @@ const Assistant = () => {
         // 2. Dynamic Data Fetching via Gemini (if configured)
         if (aiApiKey) {
             try {
-                const genAI = new GoogleGenerativeAI(aiApiKey);
-                const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+                const genAI = new GoogleGenerativeAI(aiApiKey.trim());
+                const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
                 const contextPrompt = `
 You are 'ReviewJet Sparkle', a helpful AI assistant built into a SaaS app for small businesses. 
