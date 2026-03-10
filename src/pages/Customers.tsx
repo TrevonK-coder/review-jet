@@ -8,6 +8,7 @@ const Customers = () => {
     const addCustomer = useStore((state) => state.addCustomer);
     const sendReviewRequest = useStore((state) => state.sendReviewRequest);
     const sendOfferRequest = useStore((state) => state.sendOfferRequest);
+    const sendFollowUpRequest = useStore((state) => state.sendFollowUpRequest);
     const placeId = useStore((state) => state.placeId);
     const businessName = useStore((state) => state.businessName);
 
@@ -29,21 +30,26 @@ const Customers = () => {
         toast.success('Customer added successfully!');
     };
 
-    const handleSend = (customerId: string, customerName: string, type: 'review' | 'offer') => {
+    const handleSend = (customerId: string, customerName: string, type: 'review' | 'offer' | 'followup') => {
         if (!placeId || !businessName) {
             toast.error('Please configure your Setup in Settings first.');
             return;
         }
 
         const isOffer = type === 'offer';
+        const isFollowUp = type === 'followup';
         const promise = new Promise((resolve) => setTimeout(resolve, 1500));
 
         toast.promise(promise, {
-            loading: isOffer ? 'Sending Offer via Twilio...' : 'Sending Review Request...',
+            loading: isOffer ? 'Sending Offer via Twilio...' :
+                isFollowUp ? 'Sending Follow-Up SMS...' : 'Sending Review Request...',
             success: () => {
                 if (isOffer) {
                     sendOfferRequest(customerId);
                     return `Free delivery offer sent to ${customerName}!`;
+                } else if (isFollowUp) {
+                    sendFollowUpRequest(customerId);
+                    return `Follow-up reminder sent to ${customerName}!`;
                 } else {
                     sendReviewRequest(customerId);
                     return `Review request sent to ${customerName}!`;
@@ -212,13 +218,15 @@ const Customers = () => {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${customer.status === 'sent' ? 'bg-emerald-100 text-emerald-800' :
-                                                    customer.status === 'offer_sent' ? 'bg-indigo-100 text-indigo-800' :
+                                                customer.status === 'offer_sent' ? 'bg-indigo-100 text-indigo-800' :
+                                                    customer.status === 'follow_up_sent' ? 'bg-orange-100 text-orange-800' :
                                                         customer.status === 'replied' ? 'bg-blue-100 text-blue-800' :
                                                             'bg-slate-100 text-slate-800'
                                                 }`}>
                                                 {customer.status === 'sent' ? 'Review Sent' :
                                                     customer.status === 'offer_sent' ? 'Offer Sent' :
-                                                        customer.status === 'replied' ? 'Replied' : 'Pending'}
+                                                        customer.status === 'follow_up_sent' ? 'Follow-Up Sent' :
+                                                            customer.status === 'replied' ? 'Replied' : 'Pending'}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -226,26 +234,55 @@ const Customers = () => {
                                                 {customer.visitCount > 1 && (
                                                     <button
                                                         onClick={() => handleSend(customer.id, customer.name, 'offer')}
-                                                        className={`inline-flex items-center px-3 py-1.5 border border-transparent rounded-lg shadow-sm text-xs font-medium text-white transition-colors ${customer.status === 'offer_sent'
-                                                                ? 'bg-slate-300 cursor-not-allowed shadow-none text-slate-50'
-                                                                : 'bg-indigo-600 hover:bg-indigo-700'
+                                                        className={`inline-flex items-center px-3 py-1.5 border border-transparent rounded-lg shadow-sm text-xs font-medium transition-colors ${customer.status === 'offer_sent'
+                                                            ? 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none'
+                                                            : 'bg-indigo-600 hover:bg-indigo-700 text-white'
                                                             }`}
                                                         disabled={customer.status === 'offer_sent'}
                                                     >
                                                         Send Offer
                                                     </button>
                                                 )}
-                                                <button
-                                                    onClick={() => handleSend(customer.id, customer.name, 'review')}
-                                                    className={`inline-flex items-center px-3 py-1.5 border border-transparent rounded-lg shadow-sm text-xs font-medium transition-colors ${customer.status === 'sent' || customer.status === 'replied'
-                                                            ? 'bg-slate-100 text-slate-500 cursor-not-allowed shadow-none'
-                                                            : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200'
-                                                        }`}
-                                                    disabled={customer.status === 'sent' || customer.status === 'replied'}
-                                                >
-                                                    <Send size={14} className="mr-1.5" />
-                                                    {customer.status === 'sent' ? 'Resend Review' : 'Send Review'}
-                                                </button>
+
+                                                {(() => {
+                                                    const isSent = customer.status === 'sent';
+                                                    let isFollowUpEligible = false;
+                                                    if (isSent && customer.requestSentAt) {
+                                                        const reqDate = new Date(customer.requestSentAt);
+                                                        const diffTime = Math.abs(new Date().getTime() - reqDate.getTime());
+                                                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                                        if (diffDays >= 3) {
+                                                            isFollowUpEligible = true;
+                                                        }
+                                                    }
+
+                                                    if (isFollowUpEligible) {
+                                                        return (
+                                                            <button
+                                                                onClick={() => handleSend(customer.id, customer.name, 'followup')}
+                                                                className="inline-flex items-center px-3 py-1.5 border border-transparent rounded-lg shadow-sm text-xs font-medium text-white bg-orange-500 hover:bg-orange-600 transition-colors"
+                                                            >
+                                                                <Send size={14} className="mr-1.5" />
+                                                                Follow Up
+                                                            </button>
+                                                        );
+                                                    }
+
+                                                    return (
+                                                        <button
+                                                            onClick={() => handleSend(customer.id, customer.name, 'review')}
+                                                            className={`inline-flex items-center px-3 py-1.5 border border-transparent rounded-lg shadow-sm text-xs font-medium transition-colors ${customer.status === 'sent' || customer.status === 'replied' || customer.status === 'follow_up_sent'
+                                                                ? 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none'
+                                                                : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200'
+                                                                }`}
+                                                            disabled={customer.status === 'sent' || customer.status === 'replied' || customer.status === 'follow_up_sent'}
+                                                        >
+                                                            <Send size={14} className="mr-1.5" />
+                                                            {customer.status === 'sent' ? 'Review Sent' :
+                                                                customer.status === 'follow_up_sent' ? 'Followed Up' : 'Send Review'}
+                                                        </button>
+                                                    );
+                                                })()}
                                             </div>
                                         </td>
                                     </tr>

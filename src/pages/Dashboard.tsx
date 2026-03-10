@@ -7,8 +7,12 @@ const Dashboard = () => {
     const customers = useStore((state) => state.customers);
     const businessName = useStore((state) => state.businessName);
 
-    const ctr = metrics.totalSent > 0
-        ? Math.round((metrics.clicks / metrics.totalSent) * 100)
+    const reviewCtr = metrics.reviewsSent > 0
+        ? Math.round((metrics.reviewClicks / metrics.reviewsSent) * 100)
+        : 0;
+
+    const offerCtr = metrics.offersSent > 0
+        ? Math.round((metrics.offerClicks / metrics.offersSent) * 100)
         : 0;
 
     const recentActivity = customers.slice(0, 5);
@@ -25,31 +29,50 @@ const Dashboard = () => {
             </div>
 
             {/* Metrics Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                    <div className="flex items-center space-x-4">
-                        <div className="bg-indigo-100 p-3 rounded-xl">
-                            <Send className="text-indigo-600" size={24} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
+                    <div className="flex items-center space-x-3 mb-2">
+                        <div className="bg-indigo-50 p-2 rounded-lg text-indigo-600">
+                            <Send size={18} />
                         </div>
-                        <div>
-                            <p className="text-sm font-medium text-slate-500">Total Requests Sent</p>
-                            <h3 className="text-2xl font-bold text-slate-900">{metrics.totalSent}</h3>
+                        <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Reviews Sent</p>
+                    </div>
+                    <h3 className="text-2xl font-bold text-slate-900 px-1">{metrics.reviewsSent}</h3>
+                </div>
+
+                <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
+                    <div className="flex items-center space-x-3 mb-2">
+                        <div className="bg-emerald-50 p-2 rounded-lg text-emerald-600">
+                            <MousePointerClick size={18} />
                         </div>
+                        <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Review CTR</p>
+                    </div>
+                    <div className="flex items-baseline space-x-2 px-1">
+                        <h3 className="text-2xl font-bold text-slate-900">{reviewCtr}%</h3>
+                        <span className="text-xs text-slate-400 font-medium">({metrics.reviewClicks} clicks)</span>
                     </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                    <div className="flex items-center space-x-4">
-                        <div className="bg-emerald-100 p-3 rounded-xl">
-                            <MousePointerClick className="text-emerald-600" size={24} />
+                <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
+                    <div className="flex items-center space-x-3 mb-2">
+                        <div className="bg-amber-50 p-2 rounded-lg text-amber-600">
+                            <Send size={18} />
                         </div>
-                        <div>
-                            <p className="text-sm font-medium text-slate-500">Link Click-Through Rate</p>
-                            <div className="flex items-baseline space-x-2">
-                                <h3 className="text-2xl font-bold text-slate-900">{ctr}%</h3>
-                                <span className="text-xs text-slate-500 font-medium">{metrics.clicks} clicks</span>
-                            </div>
+                        <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Offers Sent</p>
+                    </div>
+                    <h3 className="text-2xl font-bold text-slate-900 px-1">{metrics.offersSent}</h3>
+                </div>
+
+                <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
+                    <div className="flex items-center space-x-3 mb-2">
+                        <div className="bg-blue-50 p-2 rounded-lg text-blue-600">
+                            <MousePointerClick size={18} />
                         </div>
+                        <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Offer CTR</p>
+                    </div>
+                    <div className="flex items-baseline space-x-2 px-1">
+                        <h3 className="text-2xl font-bold text-slate-900">{offerCtr}%</h3>
+                        <span className="text-xs text-slate-400 font-medium">({metrics.offerClicks} clicks)</span>
                     </div>
                 </div>
             </div>
@@ -97,9 +120,9 @@ const Dashboard = () => {
                                     </div>
                                     <div className="text-right">
                                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${customer.status === 'sent' ? 'bg-emerald-100 text-emerald-800' :
-                                                customer.status === 'offer_sent' ? 'bg-indigo-100 text-indigo-800' :
-                                                    customer.status === 'replied' ? 'bg-blue-100 text-blue-800' :
-                                                        'bg-slate-100 text-slate-800'
+                                            customer.status === 'offer_sent' ? 'bg-indigo-100 text-indigo-800' :
+                                                customer.status === 'replied' ? 'bg-blue-100 text-blue-800' :
+                                                    'bg-slate-100 text-slate-800'
                                             }`}>
                                             {customer.status === 'offer_sent' ? 'Offer Sent' :
                                                 customer.status === 'sent' ? 'Review Sent' :

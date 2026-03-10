@@ -8,20 +8,24 @@ const Settings = () => {
         businessName,
         placeId,
         twilioConfig,
+        offerTemplate,
         setBusinessName,
         setPlaceId,
-        setTwilioConfig
+        setTwilioConfig,
+        setOfferTemplate
     } = useStore();
 
     const [formBusiness, setFormBusiness] = useState(businessName);
     const [formPlaceId, setFormPlaceId] = useState(placeId);
     const [formTwilio, setFormTwilio] = useState(twilioConfig);
+    const [formOffer, setFormOffer] = useState(offerTemplate);
 
     const handleSave = (e: React.FormEvent) => {
         e.preventDefault();
         setBusinessName(formBusiness);
         setPlaceId(formPlaceId);
         setTwilioConfig(formTwilio);
+        setOfferTemplate(formOffer);
         toast.success('Settings saved successfully!');
     };
 
@@ -29,7 +33,12 @@ const Settings = () => {
         ? `https://search.google.com/local/writereview?placeid=${formPlaceId}`
         : '';
 
-    const smsPreview = `Hi [Customer Name], thanks for choosing ${formBusiness || '[Business Name]'}! We'd love to hear your feedback. It takes 30 seconds to leave us a review here: ${reviewLink || '[Link]'}`;
+    const reviewPreview = `Hi [Customer Name], thanks for choosing ${formBusiness || '[Business Name]'}! We'd love to hear your feedback. It takes 30 seconds to leave us a review here: ${reviewLink || '[Link]'}`;
+
+    // Simple template replacement for preview
+    const offerPreview = formOffer
+        .replace(/\[Customer Name\]/g, 'John Doe')
+        .replace(/\[Business Name\]/g, formBusiness || 'Your Business');
 
     return (
         <div className="space-y-6 max-w-4xl">
@@ -165,14 +174,49 @@ const Settings = () => {
                     </div>
                 </div>
 
-                {/* SMS Template Preview */}
-                <div className="bg-slate-900 rounded-2xl shadow-sm border border-slate-800 overflow-hidden">
-                    <div className="px-6 py-5 border-b border-slate-800">
-                        <h2 className="text-lg font-medium text-white">SMS Message Preview</h2>
+                {/* SMS Template Builder */}
+                <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                    <div className="px-6 py-5 border-b border-slate-100 flex items-center bg-slate-50">
+                        <Smartphone size={20} className="text-indigo-600 mr-3" />
+                        <h2 className="text-lg font-medium text-slate-900">Offer Template Builder</h2>
                     </div>
-                    <div className="p-6">
-                        <div className="bg-white rounded-2xl p-4 max-w-sm rounded-bl-none shadow relative">
-                            <p className="text-slate-800 text-sm whitespace-pre-wrap leading-relaxed">{smsPreview}</p>
+                    <div className="p-6 space-y-6">
+                        <p className="text-sm text-slate-600">
+                            Customize the SMS template sent to returning clients. You can use <span className="font-mono bg-slate-100 px-1 py-0.5 rounded text-xs">[Customer Name]</span> and <span className="font-mono bg-slate-100 px-1 py-0.5 rounded text-xs">[Business Name]</span> as variables.
+                        </p>
+                        <div>
+                            <textarea
+                                value={formOffer}
+                                onChange={(e) => setFormOffer(e.target.value)}
+                                rows={4}
+                                className="w-full border-slate-300 rounded-xl py-3 px-4 border outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                                placeholder="Your custom offer message here..."
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* SMS Previews */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="bg-slate-900 rounded-2xl shadow-sm border border-slate-800 overflow-hidden flex flex-col">
+                        <div className="px-6 py-5 border-b border-slate-800">
+                            <h2 className="text-base font-medium text-white">Review Request Preview</h2>
+                        </div>
+                        <div className="p-6 flex-1 flex flex-col justify-end">
+                            <div className="bg-white rounded-2xl p-4 w-full rounded-bl-none shadow relative">
+                                <p className="text-slate-800 text-sm whitespace-pre-wrap leading-relaxed">{reviewPreview}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-indigo-950 rounded-2xl shadow-sm border border-indigo-900 overflow-hidden flex flex-col">
+                        <div className="px-6 py-5 border-b border-indigo-900">
+                            <h2 className="text-base font-medium text-white">Offer SMS Preview</h2>
+                        </div>
+                        <div className="p-6 flex-1 flex flex-col justify-end">
+                            <div className="bg-indigo-50 rounded-2xl p-4 w-full rounded-bl-none shadow relative">
+                                <p className="text-slate-800 text-sm whitespace-pre-wrap leading-relaxed">{offerPreview}</p>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -6,8 +6,9 @@ export type Customer = {
     phone: string;
     service?: string;
     visitCount: number;
-    status: 'pending' | 'sent' | 'replied' | 'offer_sent';
+    status: 'pending' | 'sent' | 'replied' | 'offer_sent' | 'follow_up_sent';
     createdAt: string;
+    requestSentAt?: string;
 };
 
 export type AppState = {
@@ -21,17 +22,22 @@ export type AppState = {
     };
     customers: Customer[];
     metrics: {
-        totalSent: number;
-        clicks: number;
+        reviewsSent: number;
+        reviewClicks: number;
+        offersSent: number;
+        offerClicks: number;
     };
+    offerTemplate: string;
     login: () => void;
     logout: () => void;
     setBusinessName: (name: string) => void;
     setPlaceId: (id: string) => void;
     setTwilioConfig: (config: AppState['twilioConfig']) => void;
+    setOfferTemplate: (template: string) => void;
     addCustomer: (customer: Omit<Customer, 'id' | 'createdAt' | 'status' | 'visitCount'>) => void;
     sendReviewRequest: (customerId: string) => void;
     sendOfferRequest: (customerId: string) => void;
+    sendFollowUpRequest: (customerId: string) => void;
     loadDemoData: (type: 'barbershop' | 'restaurant') => void;
 };
 
@@ -45,25 +51,25 @@ const generatePastDate = (daysAgo: number) => {
 const barbershopDemo = {
     businessName: "Frankie's Fade Room",
     customers: [
-        { id: 'bb1', name: 'Marcus L.', phone: '+1 (555) 019-2033', service: 'Skin Fade + Beard Trim', visitCount: 4, status: 'sent', createdAt: generatePastDate(1) },
-        { id: 'bb2', name: 'James W.', phone: '+1 (555) 928-1122', service: 'Classic Scissor Cut', visitCount: 1, status: 'replied', createdAt: generatePastDate(2) },
+        { id: 'bb1', name: 'Marcus L.', phone: '+1 (555) 019-2033', service: 'Skin Fade + Beard Trim', visitCount: 4, status: 'sent', createdAt: generatePastDate(5), requestSentAt: generatePastDate(4) },
+        { id: 'bb2', name: 'James W.', phone: '+1 (555) 928-1122', service: 'Classic Scissor Cut', visitCount: 1, status: 'replied', createdAt: generatePastDate(2), requestSentAt: generatePastDate(2) },
         { id: 'bb3', name: 'David C.', phone: '+1 (555) 882-3944', service: 'Kids Cut', visitCount: 8, status: 'pending', createdAt: generatePastDate(0) },
-        { id: 'bb4', name: 'Tony S.', phone: '+1 (555) 110-9922', service: 'Hot Towel Shave', visitCount: 2, status: 'sent', createdAt: generatePastDate(3) },
+        { id: 'bb4', name: 'Tony S.', phone: '+1 (555) 110-9922', service: 'Hot Towel Shave', visitCount: 2, status: 'offer_sent', createdAt: generatePastDate(3), requestSentAt: generatePastDate(1) },
         { id: 'bb5', name: 'Elias R.', phone: '+1 (555) 443-2211', service: 'Line Up', visitCount: 1, status: 'pending', createdAt: generatePastDate(0) },
     ] as Customer[],
-    metrics: { totalSent: 142, clicks: 84 }
+    metrics: { reviewsSent: 110, reviewClicks: 65, offersSent: 32, offerClicks: 19 }
 };
 
 const restaurantDemo = {
     businessName: "La Trattoria Roma",
     customers: [
-        { id: 'rs1', name: 'Sarah M.', phone: '+1 (555) 332-9482', service: 'Dinner for 2 (Anniversary)', visitCount: 2, status: 'sent', createdAt: generatePastDate(0) },
-        { id: 'rs2', name: 'John & Co.', phone: '+1 (555) 993-2211', service: 'Party of 6 (Birthday)', visitCount: 5, status: 'replied', createdAt: generatePastDate(2) },
+        { id: 'rs1', name: 'Sarah M.', phone: '+1 (555) 332-9482', service: 'Dinner for 2 (Anniversary)', visitCount: 2, status: 'sent', createdAt: generatePastDate(6), requestSentAt: generatePastDate(5) },
+        { id: 'rs2', name: 'John & Co.', phone: '+1 (555) 993-2211', service: 'Party of 6 (Birthday)', visitCount: 5, status: 'replied', createdAt: generatePastDate(2), requestSentAt: generatePastDate(2) },
         { id: 'rs3', name: 'Emily H.', phone: '+1 (555) 441-2993', service: 'Lunch Special', visitCount: 12, status: 'pending', createdAt: generatePastDate(0) },
-        { id: 'rs4', name: 'Michael T.', phone: '+1 (555) 884-3322', service: 'Takeout Order', visitCount: 1, status: 'sent', createdAt: generatePastDate(1) },
-        { id: 'rs5', name: 'The Smiths', phone: '+1 (555) 554-1199', service: 'Sunday Brunch', visitCount: 3, status: 'replied', createdAt: generatePastDate(4) },
+        { id: 'rs4', name: 'Michael T.', phone: '+1 (555) 884-3322', service: 'Takeout Order', visitCount: 1, status: 'follow_up_sent', createdAt: generatePastDate(10), requestSentAt: generatePastDate(1) },
+        { id: 'rs5', name: 'The Smiths', phone: '+1 (555) 554-1199', service: 'Sunday Brunch', visitCount: 3, status: 'offer_sent', createdAt: generatePastDate(4), requestSentAt: generatePastDate(1) },
     ] as Customer[],
-    metrics: { totalSent: 350, clicks: 210 }
+    metrics: { reviewsSent: 280, reviewClicks: 160, offersSent: 70, offerClicks: 50 }
 };
 
 export const useStore = create<AppState>((set) => ({
@@ -77,14 +83,18 @@ export const useStore = create<AppState>((set) => ({
     },
     customers: [],
     metrics: {
-        totalSent: 0,
-        clicks: 12, // Mock initial clicks
+        reviewsSent: 0,
+        reviewClicks: 0,
+        offersSent: 0,
+        offerClicks: 0,
     },
+    offerTemplate: "Hi [Customer Name]! Thanks for being a loyal customer at [Business Name]. Here is a special offer: Free delivery within 10km for a whole month! Reply YES to claim.",
     login: () => set({ isAuthenticated: true }),
     logout: () => set({ isAuthenticated: false }),
     setBusinessName: (name) => set({ businessName: name }),
     setPlaceId: (id) => set({ placeId: id }),
     setTwilioConfig: (config) => set({ twilioConfig: config }),
+    setOfferTemplate: (template) => set({ offerTemplate: template }),
     addCustomer: (customer) =>
         set((state) => {
             const existingClientIndex = state.customers.findIndex(c => c.phone === customer.phone);
@@ -124,21 +134,31 @@ export const useStore = create<AppState>((set) => ({
     sendReviewRequest: (customerId) =>
         set((state) => ({
             customers: state.customers.map((c) =>
-                c.id === customerId ? { ...c, status: 'sent' } : c
+                c.id === customerId ? { ...c, status: 'sent', requestSentAt: new Date().toISOString() } : c
             ),
             metrics: {
                 ...state.metrics,
-                totalSent: state.metrics.totalSent + 1,
+                reviewsSent: state.metrics.reviewsSent + 1,
             },
         })),
     sendOfferRequest: (customerId) =>
         set((state) => ({
             customers: state.customers.map((c) =>
-                c.id === customerId ? { ...c, status: 'offer_sent' } : c
+                c.id === customerId ? { ...c, status: 'offer_sent', requestSentAt: new Date().toISOString() } : c
             ),
             metrics: {
                 ...state.metrics,
-                totalSent: state.metrics.totalSent + 1,
+                offersSent: state.metrics.offersSent + 1,
+            },
+        })),
+    sendFollowUpRequest: (customerId) =>
+        set((state) => ({
+            customers: state.customers.map((c) =>
+                c.id === customerId ? { ...c, status: 'follow_up_sent', requestSentAt: new Date().toISOString() } : c
+            ),
+            metrics: {
+                ...state.metrics,
+                reviewsSent: state.metrics.reviewsSent + 1,
             },
         })),
     loadDemoData: (type) =>

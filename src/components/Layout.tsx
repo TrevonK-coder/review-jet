@@ -2,6 +2,7 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Users, Settings, CreditCard, LogOut, Send } from 'lucide-react';
 import { useStore } from '../store';
+import Assistant from './Assistant';
 
 const Layout = () => {
     const navigate = useNavigate();
@@ -102,6 +103,8 @@ const Layout = () => {
                     ))}
                 </nav>
             </main>
+
+            <Assistant />
         </div>
     );
 };
