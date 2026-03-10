@@ -62,14 +62,16 @@ const Assistant = () => {
         }
 
         // Data Fetching Intents
-        else if (lowerInput.includes('how many review') || lowerInput.includes('total review')) {
+        else if (lowerInput.includes('how many review') || lowerInput.includes('total review') || (lowerInput.includes('sms') && lowerInput.includes('review'))) {
             botResponse = `You have sent ${metrics.reviewsSent} review requests so far!`;
-        } else if (lowerInput.includes('how many offer') || lowerInput.includes('total offer')) {
+        } else if (lowerInput.includes('how many offer') || lowerInput.includes('total offer') || (lowerInput.includes('sms') && lowerInput.includes('offer'))) {
             botResponse = `You have sent ${metrics.offersSent} special offers to returning clients!`;
-        } else if (lowerInput.includes('ctr') || lowerInput.includes('click through rate') || lowerInput.includes('clicks')) {
+        } else if (lowerInput.includes('sms was sent') || lowerInput.includes('sms sent') || lowerInput.includes('total sms')) {
+            botResponse = `You've sent ${metrics.reviewsSent + metrics.offersSent} total SMS messages today (${metrics.reviewsSent} reviews, ${metrics.offersSent} offers).`;
+        } else if (lowerInput.includes('ctr') || lowerInput.includes('click through rate') || lowerInput.includes('clicks') || lowerInput.includes('stats') || lowerInput.includes('how much have i made')) {
             const reviewCtr = metrics.reviewsSent > 0 ? Math.round((metrics.reviewClicks / metrics.reviewsSent) * 100) : 0;
             const offerCtr = metrics.offersSent > 0 ? Math.round((metrics.offerClicks / metrics.offersSent) * 100) : 0;
-            botResponse = `Your Review CTR is ${reviewCtr}% (${metrics.reviewClicks} clicks). Your Offer CTR is ${offerCtr}% (${metrics.offerClicks} clicks).`;
+            botResponse = `Here are your stats! Your Review CTR is ${reviewCtr}% (${metrics.reviewClicks} clicks). Your Offer CTR is ${offerCtr}% (${metrics.offerClicks} clicks).`;
         } else if (lowerInput.includes('how many customer') || lowerInput.includes('total customer')) {
             botResponse = `You currently have ${customers.length} customers in your directory.`;
         } else if (lowerInput.includes('return') && (lowerInput.includes('client') || lowerInput.includes('customer'))) {
